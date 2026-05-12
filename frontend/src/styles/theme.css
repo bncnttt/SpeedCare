@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+:root {
+  --red:    #DC2626;
+  --orange: #EA580C;
+  --yellow: #CA8A04;
+  --green:  #16A34A;
+  --blue:   #2563EB;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #F0F4F8;
+  color: #111827;
+  min-height: 100dvh;
+}
+
+h1, h2, h3 { font-family: 'Sora', sans-serif; }
+
+button, a, input, select { min-height: 44px; }
+
+.badge-red    { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
+.badge-orange { background: #FFEDD5; color: #9A3412; border: 1px solid #FED7AA; }
+.badge-yellow { background: #FEF9C3; color: #713F12; border: 1px solid #FDE68A; }
+.badge-green  { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+.badge-blue   { background: #DBEAFE; color: #1E3A8A; border: 1px solid #BFDBFE; }
+
+.card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  padding: 24px;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 3px; }
