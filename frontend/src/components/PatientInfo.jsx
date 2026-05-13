@@ -1,120 +1,157 @@
-import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState } from 'react';
+import { Languages, AlertCircle } from 'lucide-react';
 
-const TRIAGE_MAP = {
-  0: { label: 'Emergency', cls: 'badge-red' },
-  1: { label: 'Urgent',    cls: 'badge-orange' },
-  2: { label: 'Moderate',  cls: 'badge-yellow' },
-  3: { label: 'Routine',   cls: 'badge-green' },
-}
+const translations = {
+  en: {
+    title: 'SpeedCare',
+    subtitle: 'AI-Powered Medical Triage System',
+    welcome: 'Welcome to SpeedCare',
+    description: 'Please provide your information to begin the triage process.',
+    fullName: 'Full Name',
+    fullNamePlaceholder: 'Enter your full name',
+    age: 'Age',
+    agePlaceholder: 'Enter your age',
+    pwd: 'Are you a Person with Disability (PWD)?',
+    next: 'Next',
+    error: 'Please fill in all fields',
+    errorMessage: 'Name must be at least 2 characters and age must be between 1 and 150.',
+  },
+  bis: {
+    title: 'SpeedCare',
+    subtitle: 'AI-Powered na Medical Triage System',
+    welcome: 'Maligayang pagdating sa SpeedCare',
+    description: 'Palihim ang iyong impormasyon upang magsimula ang proseso ng triage.',
+    fullName: 'Ganap na Pangalan',
+    fullNamePlaceholder: 'Ilagay ang iyong ganap na pangalan',
+    age: 'Edad',
+    agePlaceholder: 'Ilagay ang iyong edad',
+    pwd: 'Ikaw ba ay isang Taong may Kapangyarihan (PWD)?',
+    next: 'Susunod',
+    error: 'Puno lahat ng larangan',
+    errorMessage: 'Ang pangalan ay dapat na hindi bababa sa 2 character at ang edad ay dapat na 1-150.',
+  },
+};
 
-export default function PatientInfo() {
-  const { urn }  = useParams()
-  const navigate = useNavigate()
-  const [patient, setPatient] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState('')
+export default function PatientInfo({ language, onLanguageToggle, onSubmit }) {
+  const t = translations[language];
+  const [name, setName] = useState('');
+  const [age, setAge] = useState('');
+  const [isPWD, setIsPWD] = useState(false);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetch(`/api/patients/${urn}/`)
-      .then(r => { if (!r.ok) throw new Error(); return r.json() })
-      .then(setPatient)
-      .catch(() => setError('Patient record not found.'))
-      .finally(() => setLoading(false))
-  }, [urn])
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setError('');
 
-  if (loading) return (
-    <div className="min-h-dvh flex items-center justify-center">
-      <div className="animate-spin w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full" />
-    </div>
-  )
+    if (!name.trim() || !age || name.trim().length < 2 || age < 1 || age > 150) {
+      setError(t.errorMessage);
+      return;
+    }
 
-  if (error) return (
-    <div className="min-h-dvh flex items-center justify-center p-4">
-      <div className="card text-center">
-        <p className="text-red-600 mb-4">{error}</p>
-        <button onClick={() => navigate(-1)} className="text-blue-600 underline">Go back</button>
-      </div>
-    </div>
-  )
-
-  const {
-    full_name, age, sex, reason, symptoms,
-    is_pwd, is_senior, triage_level,
-    triage_suggestion, status, doctor_name,
-    room, registered_at,
-  } = patient
-
-  const displayLevel = triage_level ?? triage_suggestion
-  const tm = TRIAGE_MAP[displayLevel] ?? TRIAGE_MAP[3]
+    onSubmit(name, parseInt(age), isPWD);
+  };
 
   return (
-    <div className="min-h-dvh bg-gray-50 px-4 py-6">
-      <div className="max-w-lg mx-auto">
-        <button onClick={() => navigate(-1)} className="text-blue-600 mb-4 flex items-center gap-1 text-sm">
-          ← Back
-        </button>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-blue-100 flex items-center justify-center p-4">
+      {/* Language Toggle */}
+      <button
+        onClick={onLanguageToggle}
+        className="absolute top-6 right-6 flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-800 px-4 py-2 rounded-lg shadow-md transition-colors"
+        aria-label="Toggle language"
+      >
+        <Languages className="w-5 h-5" />
+        <span className="text-sm font-medium">{language === 'en' ? 'EN' : 'BIS'}</span>
+      </button>
 
-        <div className="card mb-4">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h1 className="text-xl font-bold text-gray-800">{full_name}</h1>
-              <div className="text-gray-400 text-sm font-mono">{urn}</div>
-            </div>
-            <span className={`rounded-xl px-3 py-1.5 text-sm font-semibold ${tm.cls}`}>
-              {tm.label}
-            </span>
+      {/* Main Card */}
+      <div className="w-full max-w-md">
+        <div className="bg-white rounded-2xl shadow-2xl p-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-blue-900 mb-2">{t.title}</h1>
+            <p className="text-sm text-gray-600 mb-4">{t.subtitle}</p>
+            <div className="w-16 h-1 bg-gradient-to-r from-blue-400 to-blue-600 mx-auto rounded-full"></div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Age"    value={`${age} yrs`} />
-            <Field label="Sex"    value={sex === 'M' ? 'Male' : sex === 'F' ? 'Female' : 'Other'} />
-            <Field label="Reason" value={reason} />
-            <Field label="Status" value={status} />
-            {doctor_name && <Field label="Doctor" value={`Dr. ${doctor_name}`} />}
-            {room        && <Field label="Room"   value={room} />}
-            <Field label="Registered" value={new Date(registered_at).toLocaleTimeString()} />
+          {/* Welcome Message */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-2">{t.welcome}</h2>
+            <p className="text-gray-600">{t.description}</p>
           </div>
 
-          {(is_senior || is_pwd) && (
-            <div className="mt-4 flex gap-2 flex-wrap">
-              {is_senior && <span className="badge-yellow rounded-full px-3 py-1 text-xs font-semibold">⭐ Senior Citizen</span>}
-              {is_pwd    && <span className="badge-blue  rounded-full px-3 py-1 text-xs font-semibold">♿ PWD</span>}
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded flex gap-3">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+              <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
-        </div>
 
-        {symptoms && (
-          <div className="card mb-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Symptoms</h2>
-            <p className="text-gray-800">{symptoms}</p>
-          </div>
-        )}
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Full Name Input */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                {t.fullName}
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t.fullNamePlaceholder}
+                className="w-full px-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
+              />
+            </div>
 
-        <div className="card">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">AI Triage Suggestion</h2>
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className={`rounded-xl px-3 py-1.5 text-sm font-semibold ${TRIAGE_MAP[triage_suggestion]?.cls || 'badge-green'}`}>
-              Level {triage_suggestion} — {TRIAGE_MAP[triage_suggestion]?.label}
-            </span>
-            {triage_level !== null && triage_level !== triage_suggestion && (
-              <span className="text-xs text-gray-400">→ Staff set: Level {triage_level}</span>
-            )}
+            {/* Age Input */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                {t.age}
+              </label>
+              <input
+                type="number"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                placeholder={t.agePlaceholder}
+                min="1"
+                max="150"
+                className="w-full px-4 py-3 text-lg border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
+              />
+            </div>
+
+            {/* PWD Checkbox */}
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="pwd"
+                checked={isPWD}
+                onChange={(e) => setIsPWD(e.target.checked)}
+                className="w-5 h-5 text-blue-600 rounded cursor-pointer"
+              />
+              <label htmlFor="pwd" className="text-gray-700 font-medium cursor-pointer">
+                {t.pwd}
+              </label>
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-4 rounded-lg transition-all transform hover:scale-105 active:scale-95 text-lg"
+            >
+              {t.next}
+            </button>
+          </form>
+
+          {/* Footer Info */}
+          <div className="mt-8 p-4 bg-blue-50 rounded-lg text-center">
+            <p className="text-xs text-gray-600">
+              {language === 'en'
+                ? 'Your information is secure and will be used only for medical triage.'
+                : 'Ang iyong impormasyon ay secure at gagamitin lamang para sa medical triage.'}
+            </p>
           </div>
-          <p className="text-xs text-gray-400 mt-2">
-            AI suggestion is for reference only. Final triage is set by clinical staff.
-          </p>
         </div>
       </div>
     </div>
-  )
-}
-
-function Field({ label, value }) {
-  return (
-    <div>
-      <div className="text-xs text-gray-400 mb-0.5">{label}</div>
-      <div className="text-sm font-medium text-gray-800">{value}</div>
-    </div>
-  )
+  );
 }

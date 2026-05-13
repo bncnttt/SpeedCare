@@ -1,261 +1,258 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 
-const VISIT_REASONS = [
-  { en: 'Emergency',    bi: 'Emerhensya' },
-  { en: 'Consultation', bi: 'Konsultasyon' },
-  { en: 'Laboratory',   bi: 'Laboratoryo' },
-  { en: 'Follow-up',    bi: 'Follow-up' },
-  { en: 'Vaccination',  bi: 'Bakuna' },
-  { en: 'Other',        bi: 'Uban pa' },
-]
-
-export default function PreRegistrationForm() {
-  const navigate = useNavigate()
-  const [lang, setLang] = useState('en')
-  const [form, setForm] = useState({
-    full_name: '',
-    age: '',
-    sex: '',
-    reason: '',
-    is_pwd: false,
-    symptoms: '',
-  })
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
-
-  const t = (en, bi) => lang === 'bi' ? bi : en
-
-  function handleChange(e) {
-    const { name, value, type, checked } = e.target
-    setForm(f => ({ ...f, [name]: type === 'checkbox' ? checked : value }))
+export const translations = {
+  en: {
+    additional_info: 'Additional Information',
+    phone: 'Phone Number',
+    email: 'Email Address',
+    address: 'Address',
+    emergency_contact: 'Emergency Contact Name',
+    medical_history: 'Medical History (Optional)',
+    allergies: 'Known Allergies',
+    none: 'None',
+    register: 'Complete Registration',
+    skip: 'Skip & Continue',
+    optional: 'optional',
+    required: 'required'
+  },
+  bis: {
+    additional_info: 'Dagdag na Impormasyon',
+    phone: 'Numero sa Telepono',
+    email: 'Email Address',
+    address: 'Adres',
+    emergency_contact: 'Ngalan ng Emergency Contact',
+    medical_history: 'Kasaysayan sa Kalusugan (Opsyonal)',
+    allergies: 'Kilalang Alerhiya',
+    none: 'Wala',
+    register: 'Kumpletuhin ang Pagparehistro',
+    skip: 'Balsa & Magpatuloy',
+    optional: 'opsyonal',
+    required: 'kinahanglanon'
   }
+};
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    setError('')
-    if (!form.full_name || !form.age || !form.sex || !form.reason) {
-      setError(t(
-        'Please fill in all required fields.',
-        'Palihug pun-a ang tanan nga kinahanglanon.'
-      ))
-      return
+export default function PreRegistrationForm({ language = 'en', patientName, onSubmit, onSkip }) {
+  const [formData, setFormData] = useState({
+    phone: '',
+    email: '',
+    address: '',
+    emergencyContact: '',
+    medicalHistory: '',
+    allergies: ''
+  });
+
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const t = (key) => translations[language]?.[key] || translations.en[key];
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear error for this field
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
     }
-    setLoading(true)
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    
+    // Basic email validation if provided
+    if (formData.email && !formData.email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      newErrors.email = language === 'bis' ? 'Hindi balido ang email' : 'Invalid email format';
+    }
+    
+    // Phone validation if provided
+    if (formData.phone && !formData.phone.match(/^\d{10,}$/)) {
+      newErrors.phone = language === 'bis' ? 'Kinahanglanon ang valid na numero' : 'Please enter a valid phone number';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
     try {
-      const res = await fetch('/api/patients/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      })
-      if (!res.ok) throw new Error()
-      const data = await res.json()
-      navigate('/receipt', { state: { patient: data } })
-    } catch {
-      setError(t(
-        'Something went wrong. Please try again.',
-        'May sayop. Palihug sulayi pag-usab.'
-      ))
+      // Simulate a brief delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      onSubmit({ ...formData });
+    } catch (error) {
+      console.error('Registration error:', error);
     } finally {
-      setLoading(false)
+      setIsSubmitting(false);
     }
-  }
+  };
+
+  const handleSkip = () => {
+    onSkip();
+  };
 
   return (
-    <div className="min-h-dvh bg-gradient-to-b from-blue-50 to-white px-4 py-8 flex flex-col">
-
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-blue-700">SpeedCare</h1>
-          <p className="text-gray-500 text-sm mt-0.5">
-            {t('Hospital Fast-Track System', 'Sistema sa Paspas nga Pagparehistro')}
-          </p>
-        </div>
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
-          {['en', 'bi'].map(l => (
-            <button
-              key={l}
-              type="button"
-              onClick={() => setLang(l)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                lang === l
-                  ? 'bg-white text-blue-700 shadow-sm'
-                  : 'text-gray-500'
-              }`}
-            >
-              {l === 'en' ? 'English' : 'Bisaya'}
-            </button>
-          ))}
-        </div>
+      <div className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-10">
+        <h2 className="text-2xl font-bold text-blue-700">{t('additional_info')}</h2>
+        <p className="text-gray-600 text-sm mt-1">
+          {language === 'bis' 
+            ? `Salamat, ${patientName}. Ang mga sumusunod ay opsyonal.` 
+            : `Thank you, ${patientName}. The following information is optional.`}
+        </p>
       </div>
 
-      {/* Chatbot button — prominent, before the form */}
-      <button
-        type="button"
-        onClick={() => navigate('/chatbot')}
-        className="mb-6 w-full flex items-center gap-3 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-2xl px-4 py-3.5 hover:bg-indigo-100 transition-colors"
-      >
-        <span className="text-2xl">💬</span>
-        <div className="text-left">
-          <div className="font-semibold text-sm">
-            {t('Hospital Info Chatbot', 'Chatbot sa Impormasyon sa Ospital')}
-          </div>
-          <div className="text-xs text-indigo-500">
-            {t(
-              'Ask about schedules, rooms, fees & more',
-              'Pangutana bahin sa oras, kwarto, bayad ug uban pa'
-            )}
-          </div>
-        </div>
-        <span className="ml-auto text-indigo-400 text-lg">›</span>
-      </button>
-
-      {/* Form */}
-      <form onSubmit={handleSubmit} className="card flex-1 flex flex-col gap-5">
-        <h2 className="text-xl font-bold text-gray-800">
-          {t('Patient Registration', 'Pagparehistro sa Pasyente')}
-        </h2>
-
-        {/* Full name */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-gray-700">
-            {t('Full Name', 'Tibuok Ngalan')} <span className="text-red-500">*</span>
-          </label>
-          <input
-            name="full_name"
-            value={form.full_name}
-            onChange={handleChange}
-            placeholder="Juan Dela Cruz"
-            className="border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </div>
-
-        {/* Age + Sex */}
-        <div className="flex gap-3">
-          <div className="flex flex-col gap-1.5 flex-1">
-            <label className="text-sm font-medium text-gray-700">
-              {t('Age', 'Edad')} <span className="text-red-500">*</span>
+      {/* Form Container */}
+      <div className="flex-1 overflow-y-auto px-6 py-8">
+        <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-6">
+          
+          {/* Phone Number */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-gray-700">
+              {t('phone')}
+              <span className="text-gray-400 text-xs font-normal ml-1">({t('optional')})</span>
             </label>
             <input
-              name="age"
-              type="number"
-              min="0"
-              max="130"
-              value={form.age}
+              type="tel"
+              name="phone"
+              value={formData.phone}
               onChange={handleChange}
-              placeholder="0"
-              className="border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="09123456789"
+              className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
+                errors.phone
+                  ? 'border-red-300 bg-red-50'
+                  : 'border-gray-200 bg-white hover:border-blue-300 focus:border-blue-500'
+              } focus:outline-none`}
+            />
+            {errors.phone && <p className="text-red-600 text-xs">{errors.phone}</p>}
+          </div>
+
+          {/* Email */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-gray-700">
+              {t('email')}
+              <span className="text-gray-400 text-xs font-normal ml-1">({t('optional')})</span>
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="juan@example.com"
+              className={`w-full px-4 py-3 rounded-xl border-2 transition-colors ${
+                errors.email
+                  ? 'border-red-300 bg-red-50'
+                  : 'border-gray-200 bg-white hover:border-blue-300 focus:border-blue-500'
+              } focus:outline-none`}
+            />
+            {errors.email && <p className="text-red-600 text-xs">{errors.email}</p>}
+          </div>
+
+          {/* Address */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-gray-700">
+              {t('address')}
+              <span className="text-gray-400 text-xs font-normal ml-1">({t('optional')})</span>
+            </label>
+            <input
+              type="text"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              placeholder={language === 'bis' ? 'Adres' : 'Street Address'}
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-300 focus:border-blue-500 focus:outline-none transition-colors"
             />
           </div>
-          <div className="flex flex-col gap-1.5 flex-1">
-            <label className="text-sm font-medium text-gray-700">
-              {t('Sex', 'Kasarian')} <span className="text-red-500">*</span>
+
+          {/* Emergency Contact */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-gray-700">
+              {t('emergency_contact')}
+              <span className="text-gray-400 text-xs font-normal ml-1">({t('optional')})</span>
             </label>
-            <select
-              name="sex"
-              value={form.sex}
+            <input
+              type="text"
+              name="emergencyContact"
+              value={formData.emergencyContact}
               onChange={handleChange}
-              className="border border-gray-200 rounded-xl px-4 py-3 text-base bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
-            >
-              <option value="">{t('Select', 'Pili')}</option>
-              <option value="M">{t('Male', 'Lalaki')}</option>
-              <option value="F">{t('Female', 'Babaye')}</option>
-              <option value="O">{t('Other', 'Uban')}</option>
-            </select>
+              placeholder={language === 'bis' ? 'Ngalan' : 'Full Name'}
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-300 focus:border-blue-500 focus:outline-none transition-colors"
+            />
           </div>
-        </div>
 
-        {/* Reason */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-gray-700">
-            {t('Reason for Visit', 'Hinungdan sa Pagbisita')} <span className="text-red-500">*</span>
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {VISIT_REASONS.map(r => (
-              <button
-                key={r.en}
-                type="button"
-                onClick={() => setForm(f => ({ ...f, reason: r.en }))}
-                className={`py-3 rounded-xl border text-sm font-medium transition-all ${
-                  form.reason === r.en
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-white text-gray-700 border-gray-200 hover:border-blue-300'
-                }`}
-              >
-                {lang === 'bi' ? r.bi : r.en}
-              </button>
-            ))}
+          {/* Medical History */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-gray-700">
+              {t('medical_history')}
+            </label>
+            <textarea
+              name="medicalHistory"
+              value={formData.medicalHistory}
+              onChange={handleChange}
+              placeholder={language === 'bis' 
+                ? 'hal. Diabetes, Asthma...' 
+                : 'e.g. Diabetes, High Blood Pressure...'}
+              rows="3"
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-300 focus:border-blue-500 focus:outline-none transition-colors resize-none"
+            />
           </div>
-        </div>
 
-        {/* Symptoms */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-gray-700">
-            {t(
-              'Describe your symptoms (optional)',
-              'Ihulagway ang imong mga sintomas (opsyonal)'
-            )}
-          </label>
-          <textarea
-            name="symptoms"
-            value={form.symptoms}
-            onChange={handleChange}
-            placeholder={t(
-              'e.g. Chest pain, difficulty breathing...',
-              'hal. Sakit sa dughan, lisod ginhawa...'
-            )}
-            rows={3}
-            className="border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
-          />
-        </div>
-
-        {/* PWD */}
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            name="is_pwd"
-            checked={form.is_pwd}
-            onChange={handleChange}
-            className="w-5 h-5 rounded accent-blue-600"
-          />
-          <span className="text-sm text-gray-700">
-            {t(
-              'I am a Person with Disability (PWD)',
-              'Ako ay Taong May Kapansanan (PWD)'
-            )}
-          </span>
-        </label>
-
-        {/* Senior auto-detect */}
-        {parseInt(form.age) >= 60 && (
-          <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-            <span>🌟</span>
-            <span className="text-sm text-amber-800 font-medium">
-              {t(
-                'Senior citizen priority detected (60+)',
-                'Nakita ang prioridad ng senior citizen (60+)'
-              )}
-            </span>
+          {/* Allergies */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-gray-700">
+              {t('allergies')}
+              <span className="text-gray-400 text-xs font-normal ml-1">({t('optional')})</span>
+            </label>
+            <input
+              type="text"
+              name="allergies"
+              value={formData.allergies}
+              onChange={handleChange}
+              placeholder={language === 'bis' ? 'hal. Penicillin' : 'e.g. Penicillin, Shellfish...'}
+              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white hover:border-blue-300 focus:border-blue-500 focus:outline-none transition-colors"
+            />
           </div>
-        )}
+        </form>
+      </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-700 text-sm">
-            {error}
-          </div>
-        )}
+      {/* Action Buttons */}
+      <div className="bg-white border-t border-gray-200 px-6 py-4 sticky bottom-0 space-y-3">
+        <button
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 rounded-xl transition-all active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
+        >
+          {isSubmitting ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              {language === 'bis' ? 'Pinapadala...' : 'Submitting...'}
+            </>
+          ) : (
+            <>
+              {t('register')}
+              <ChevronRight className="w-5 h-5" />
+            </>
+          )}
+        </button>
 
         <button
-          type="submit"
-          disabled={loading}
-          className="mt-auto bg-blue-600 text-white font-semibold rounded-2xl py-4 text-lg hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-60"
+          onClick={handleSkip}
+          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
         >
-          {loading
-            ? t('Submitting...', 'Gipadala...')
-            : t('Register & Get Queue Number', 'Magparehistro ug Kuhaon ang Numero')}
+          {t('skip')}
+          <ChevronRight className="w-4 h-4" />
         </button>
-      </form>
+      </div>
     </div>
-  )
+  );
 }
