@@ -5,10 +5,27 @@ import ChatbotAssistant from './components/ChatbotAssistant';
 import AnalysisState from './components/AnalysisState';
 import PreRegistrationForm from './components/PreRegistrationForm';
 import TriageResult from './components/TriageResult';
+import AdminLogin from './admin/AdminLogin';
+import AdminDashboard from './admin/AdminDashboard';
+import DoctorDashboard from './doctor/DoctorDashboard';
+
+function getInitialState() {
+  if (window.location.pathname === '/admin' || window.location.pathname === '/nurse') return 'admin-login';
+  if (window.location.pathname === '/admin/dashboard' || window.location.pathname === '/nurse/dashboard') return 'admin-dashboard';
+  if (window.location.pathname === '/doctor' || window.location.pathname === '/doctor/dashboard') return 'doctor-dashboard';
+  return 'patient-info';
+}
+
+function setAppPath(path) {
+  window.history.pushState({}, '', path);
+}
 
 export default function App() {
-  const [state, setState] = useState('patient-info');
+  const [state, setState] = useState(getInitialState);
+  const [previousPatientState, setPreviousPatientState] = useState('patient-info');
   const [language, setLanguage] = useState('en');
+  const [adminUser, setAdminUser] = useState(null);
+  const [patientVitals, setPatientVitals] = useState({});
 
   // Patient data
   const [patientName, setPatientName] = useState('');
@@ -16,6 +33,8 @@ export default function App() {
   const [symptoms, setSymptoms] = useState('');
   const [registrationData, setRegistrationData] = useState(undefined);
   const [reasonForVisit, setReasonForVisit] = useState('');
+  const [queueNumber, setQueueNumber] = useState(undefined);
+  const [latestPatientRecord, setLatestPatientRecord] = useState(undefined);
 
   // Triage data
   const [triageLevel, setTriageLevel] = useState(2);
@@ -92,31 +111,129 @@ export default function App() {
   };
 
   const handleRegistrationSubmit = (data) => {
+    const newQueueNumber = Math.floor(Math.random() * 9000) + 1000;
     setRegistrationData(data);
+    setQueueNumber(newQueueNumber);
+    setLatestPatientRecord({
+      id: `local-${Date.now()}`,
+      queueNumber: newQueueNumber,
+      patientName,
+      patientAge,
+      symptoms,
+      reasonForVisit,
+      registrationData: data,
+      triageLevel,
+      isPriority,
+    });
     setState('result');
   };
 
   const handleRegistrationSkip = () => {
+    const newQueueNumber = Math.floor(Math.random() * 9000) + 1000;
     setRegistrationData(undefined);
+    setQueueNumber(newQueueNumber);
+    setLatestPatientRecord({
+      id: `local-${Date.now()}`,
+      queueNumber: newQueueNumber,
+      patientName,
+      patientAge,
+      symptoms,
+      reasonForVisit,
+      registrationData: undefined,
+      triageLevel,
+      isPriority,
+    });
     setState('result');
   };
 
   const handleReset = () => {
+    setAppPath('/');
     setState('patient-info');
+    setPreviousPatientState('patient-info');
     setPatientName('');
     setPatientAge(0);
     setSymptoms('');
     setRegistrationData(undefined);
+    setQueueNumber(undefined);
     setTriageLevel(2);
     setIsPriority(false);
     setReasonForVisit('');
     setLanguage('en');
   };
 
+  const handleOpenAdminLogin = () => {
+    setPreviousPatientState(state);
+    setAppPath('/nurse');
+    setState('admin-login');
+  };
+
+  const handleAdminLogin = (user) => {
+    setAdminUser(user);
+    setAppPath('/nurse/dashboard');
+    setState('admin-dashboard');
+  };
+
+  const handleAdminLogout = () => {
+    setAdminUser(null);
+    setAppPath('/nurse');
+    setState('admin-login');
+  };
+
+  const handleOpenDoctorDashboard = () => {
+    setAppPath('/doctor/dashboard');
+    setState('doctor-dashboard');
+  };
+
+  const handleBackToAdminDashboard = () => {
+    setAppPath(adminUser ? '/nurse/dashboard' : '/nurse');
+    setState(adminUser ? 'admin-dashboard' : 'admin-login');
+  };
+
+  const handleSaveVitals = (queueNumberForVitals, vitals) => {
+    setPatientVitals((currentVitals) => ({
+      ...currentVitals,
+      [queueNumberForVitals]: vitals,
+    }));
+  };
+
+  const handleBackToPatientFlow = () => {
+    setAppPath('/');
+    setState(previousPatientState || 'patient-info');
+  };
+
   return (
     <div className="size-full relative bg-white">
+      {state === 'admin-login' && (
+        <AdminLogin
+          onLogin={handleAdminLogin}
+          onBack={handleBackToPatientFlow}
+        />
+      )}
+
+      {state === 'admin-dashboard' && (
+        <AdminDashboard
+          adminUser={adminUser}
+          latestPatient={latestPatientRecord}
+          patientVitals={patientVitals}
+          onSaveVitals={handleSaveVitals}
+          onLogout={handleAdminLogout}
+          onBackToKiosk={handleBackToPatientFlow}
+          onOpenDoctor={handleOpenDoctorDashboard}
+        />
+      )}
+
+      {state === 'doctor-dashboard' && (
+        <DoctorDashboard
+          latestPatient={latestPatientRecord}
+          patientVitals={patientVitals}
+          onBackToAdmin={handleBackToAdminDashboard}
+          onBackToKiosk={handleBackToPatientFlow}
+          onLogout={handleAdminLogout}
+        />
+      )}
+
       {/* Floating Language Toggle - Available on all screens except patient-info */}
-      {state !== 'patient-info' && state !== 'chat' && (
+      {state !== 'patient-info' && state !== 'chat' && state !== 'admin-login' && state !== 'admin-dashboard' && state !== 'doctor-dashboard' && (
         <div className="fixed top-4 right-4 z-50">
           <button
             onClick={handleLanguageToggle}
@@ -165,6 +282,7 @@ export default function App() {
       {/* Step 5: Triage Result with QR Code */}
       {state === 'result' && (
         <TriageResult
+          queueNumber={queueNumber}
           triageLevel={triageLevel}
           isPriority={isPriority}
           language={language}
@@ -174,6 +292,7 @@ export default function App() {
           reasonForVisit={reasonForVisit}
           registrationData={registrationData}
           onReset={handleReset}
+          onOpenAdminLogin={handleOpenAdminLogin}
         />
       )}
     </div>

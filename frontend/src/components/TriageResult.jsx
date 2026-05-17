@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AlertCircle, CheckCircle, Clock, HelpCircle, QrCode, RotateCcw } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, HelpCircle, QrCode, RotateCcw, ShieldCheck } from 'lucide-react';
 import QRCode from 'qrcode.react';
 
 const translations = {
@@ -22,6 +22,7 @@ const translations = {
     instruction4: 'Keep your reference number safe.',
     saveQR: 'Save or Screenshot this QR code',
     newPatient: 'New Patient',
+    adminLogin: 'Hospital Nurse Login',
     levels: {
       0: { name: 'Emergency', color: 'bg-red-100 border-red-500 text-red-700', icon: '🚨' },
       1: { name: 'Urgent', color: 'bg-orange-100 border-orange-500 text-orange-700', icon: '⚠️' },
@@ -60,6 +61,7 @@ const translations = {
     instruction4: 'Panatilihing ligtas ang iyong numero ng referensya.',
     saveQR: 'I-save o kumuha ng screenshot ng QR code na ito',
     newPatient: 'Bagong Pasyente',
+    adminLogin: 'Login ng Hospital Nurse',
     levels: {
       0: { name: 'Emergency', color: 'bg-red-100 border-red-500 text-red-700', icon: '🚨' },
       1: { name: 'Urgent', color: 'bg-orange-100 border-orange-500 text-orange-700', icon: '⚠️' },
@@ -82,6 +84,7 @@ const translations = {
 };
 
 export default function TriageResult({
+  queueNumber: providedQueueNumber,
   triageLevel,
   isPriority,
   language,
@@ -90,9 +93,11 @@ export default function TriageResult({
   symptoms,
   registrationData,
   onReset,
+  onOpenAdminLogin,
 }) {
   const t = translations[language];
-  const [queueNumber] = useState(Math.floor(Math.random() * 9000) + 1000);
+  const [generatedQueueNumber] = useState(Math.floor(Math.random() * 9000) + 1000);
+  const queueNumber = providedQueueNumber ?? generatedQueueNumber;
   const levelInfo = t.levels[triageLevel];
   const waitTime = language === 'en' ? t.waitTimes[triageLevel] : t.waitTimesBis[triageLevel];
 
@@ -225,6 +230,19 @@ export default function TriageResult({
                 ? '✅ Your registration information has been saved and will be available to the medical staff.'
                 : '✅ Ang iyong impormasyon sa pagpaparehistro ay nakatipid at magiging available sa medikal na staff.'}
             </p>
+          </div>
+        )}
+
+        {onOpenAdminLogin && (
+          <div className="mb-6 flex justify-end">
+            <button
+              type="button"
+              onClick={onOpenAdminLogin}
+              className="flex items-center justify-center gap-2 rounded-lg bg-[#173968] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#214b82]"
+            >
+              <ShieldCheck className="h-5 w-5" />
+              {t.adminLogin}
+            </button>
           </div>
         )}
 
